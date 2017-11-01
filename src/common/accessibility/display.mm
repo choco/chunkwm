@@ -2,9 +2,11 @@
 #include "../misc/assert.h"
 
 #include <Cocoa/Cocoa.h>
-
+#include <chrono>
+#include <thread>
 #define internal static
 #define CGSDefaultConnection _CGSDefaultConnection()
+#define NUM_RETRIES 10
 typedef int CGSConnectionID;
 
 extern "C" CGSConnectionID _CGSDefaultConnection(void);
@@ -644,8 +646,17 @@ AXLibSpacesForWindow(uint32_t WindowId)
     macos_space **Result = NULL;
 
     NSArray *NSArrayWindow = @[ @(WindowId) ];
-    CFArrayRef Spaces = CGSCopySpacesForWindows(CGSDefaultConnection, kCGSSpaceAll, (__bridge CFArrayRef) NSArrayWindow);
-    int NumberOfSpaces = CFArrayGetCount(Spaces);
+
+    CFArrayRef Spaces = NULL;
+    int NumberOfSpaces = 0;
+    for(int i=0; i<NUM_RETRIES; i++){
+        Spaces = CGSCopySpacesForWindows(CGSDefaultConnection, kCGSSpaceAll, (__bridge CFArrayRef) NSArrayWindow);
+        NumberOfSpaces = CFArrayGetCount(Spaces);
+        if(NumberOfSpaces)
+            break;
+        CFRelease(Spaces);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     if (NumberOfSpaces) {
         Result = (macos_space **) malloc(sizeof(macos_space *) * (NumberOfSpaces + 1));
@@ -788,8 +799,16 @@ bool AXLibSpaceHasWindow(CGSSpaceID SpaceId, uint32_t WindowId)
     bool Result = false;
 
     NSArray *NSArrayWindow = @[ @(WindowId) ];
-    CFArrayRef Spaces = CGSCopySpacesForWindows(CGSDefaultConnection, kCGSSpaceAll, (__bridge CFArrayRef) NSArrayWindow);
-    int NumberOfSpaces = CFArrayGetCount(Spaces);
+    CFArrayRef Spaces = NULL;
+    int NumberOfSpaces = 0;
+    for(int i=0; i<NUM_RETRIES; i++){
+        Spaces = CGSCopySpacesForWindows(CGSDefaultConnection, kCGSSpaceAll, (__bridge CFArrayRef) NSArrayWindow);
+        NumberOfSpaces = CFArrayGetCount(Spaces);
+        if(NumberOfSpaces)
+            break;
+        CFRelease(Spaces);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     for (int Index = 0; Index < NumberOfSpaces; ++Index) {
         NSNumber *Id = (__bridge NSNumber *) CFArrayGetValueAtIndex(Spaces, Index);
@@ -808,8 +827,16 @@ bool AXLibStickyWindow(uint32_t WindowId)
     bool Result = false;
 
     NSArray *NSArrayWindow = @[ @(WindowId) ];
-    CFArrayRef Spaces = CGSCopySpacesForWindows(CGSDefaultConnection, kCGSSpaceAll, (__bridge CFArrayRef) NSArrayWindow);
-    int NumberOfSpaces = CFArrayGetCount(Spaces);
+    CFArrayRef Spaces = NULL;
+    int NumberOfSpaces = 0;
+    for(int i=0; i<NUM_RETRIES; i++){
+        Spaces = CGSCopySpacesForWindows(CGSDefaultConnection, kCGSSpaceAll, (__bridge CFArrayRef) NSArrayWindow);
+        NumberOfSpaces = CFArrayGetCount(Spaces);
+        if(NumberOfSpaces)
+            break;
+        CFRelease(Spaces);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     Result = NumberOfSpaces > 1;
 
